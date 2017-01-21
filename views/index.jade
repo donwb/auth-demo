@@ -1,5 +1,15 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{user}
+  h2 Home page
+  h3 Current User: #{user}
+  if user == "not logged in"
+    a(href="/login/github") login now
+    p
+    a(href="/profile") Try going to profile while logged out
+  else
+    a(href="/profile") profile
+    p
+    a(href="/logout") logout
+  end
+    

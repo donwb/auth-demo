@@ -4,20 +4,29 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+
+// Need this to support sessions
 var session = require('express-session');
 
+// Require in passport and github strategy
 var passport = require('passport');
-//var GitHubStrategy = require('passport-github').Strategy;
 var GitHubStrategy = require('passport-github2').Strategy;
 
+
+// ?? not sure yet
 passport.serializeUser(function(user, callback){
   callback(null, user);
 });
 
+// ?? not sure yet
 passport.deserializeUser(function(obj, callback){
   callback(null, obj);
 });
 
+// This is the main func. wires up the GitHubStrategy
+// using the ID, SECRET, and URL from your app in GH
+// the following function is where you manage the user
+// once the login succeeds
 passport.use(new GitHubStrategy({
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
@@ -25,11 +34,15 @@ passport.use(new GitHubStrategy({
 },
 function(accessToken, refreshToken, profile, callback){
   process.nextTick(function(){
-    console.log(profile.id);
-    console.log(profile.displayName);
-    console.log(profile.emails);
-
+    // The profile object is doc'ed here:
+    // http://passportjs.org/docs/profile
+    // Basically use this info to map the Github user to 
+    // your own user store, using profile.id as the key
+    // id, displayName, and emails are interesting properties
     
+    // You would want to return your own user here
+    // not the github user, but this simplifies things
+    // by not including the complexity of user management
     return callback(null, profile);
   });
 }));
@@ -54,40 +67,42 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({ secret: 'keyboard cat', resave: false, saveUninitialized: false }));
 
-// Passport stuff
+/* Passport initialization stuff */
 app.use(passport.initialize());
 app.use(passport.session());
 
 app.use('/', index);
 app.use('/users', users);
 
+
+
+
+/* ------ Begin Passport Routes -------- */
+// Fallback route in case github fails (see failureRedirect)
 app.get('/login', function(req, res){
   res.render('login');
 });
 
+// This route starts the github auth flow
 app.get('/login/github', 
   passport.authenticate('github', {scope: ['user:email']}),
   function(req, res){
     // noop
   });
 
+// this is the callback from github
 app.get('/login/github/return', 
   passport.authenticate('github', {failureRedirect: '/login'}),
   function(req, res){
     res.redirect('/');
 });
 
-
+// does what it says
 app.get('/logout', function(req, res){
   req.logout();
   res.redirect('/');
 });
-
-app.get('/profile', ensureAuthenticated, function(req, res){
-    console.log(req);
-    res.render('profile', { user: req.user.displayName });
-});
-
+/* -------- End Passport Routes ---------- */
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -107,9 +122,5 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  res.redirect('/login')
-}
 
 module.exports = app;
