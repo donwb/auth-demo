@@ -4,19 +4,12 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
+var session = require('express-session');
 
 var passport = require('passport');
-var GitHubStrategy = require('passport-github').Strategy;
+//var GitHubStrategy = require('passport-github').Strategy;
+var GitHubStrategy = require('passport-github2').Strategy;
 
-passport.use(new GitHubStrategy({
-  clientID: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  callbackURL: 'http://localhost:3000/login/github/return'
-},
-function(accessToken, refreshToken, profile, callback){
-  return callback(null, profile);
-}));
 passport.serializeUser(function(user, callback){
   callback(null, user);
 });
@@ -24,6 +17,23 @@ passport.serializeUser(function(user, callback){
 passport.deserializeUser(function(obj, callback){
   callback(null, obj);
 });
+
+passport.use(new GitHubStrategy({
+  clientID: process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  callbackURL: 'http://localhost:3000/login/github/return'
+},
+function(accessToken, refreshToken, profile, callback){
+  process.nextTick(function(){
+    console.log(profile.id);
+    console.log(profile.displayName);
+    console.log(profile.emails);
+
+    
+    return callback(null, profile);
+  });
+}));
+
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -42,6 +52,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({ secret: 'keyboard cat', resave: false, saveUninitialized: false }));
 
 // Passport stuff
 app.use(passport.initialize());
@@ -54,17 +65,29 @@ app.get('/login', function(req, res){
   res.render('login');
 });
 
-app.get('/login/github', passport.authenticate('github'));
-app.get('/login/github/return', passport.authenticate('github', {failureRedirect: '/login'}),
+app.get('/login/github', 
+  passport.authenticate('github', {scope: ['user:email']}),
+  function(req, res){
+    // noop
+  });
+
+app.get('/login/github/return', 
+  passport.authenticate('github', {failureRedirect: '/login'}),
   function(req, res){
     res.redirect('/');
 });
 
-app.get('/profile',
-  require('connect-ensure-login').ensureLoggedIn(),
-  function(req, res){
-    res.render('profile', { user: req.user });
+
+app.get('/logout', function(req, res){
+  req.logout();
+  res.redirect('/');
 });
+
+app.get('/profile', ensureAuthenticated, function(req, res){
+    console.log(req);
+    res.render('profile', { user: req.user.displayName });
+});
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -83,5 +106,10 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  res.redirect('/login')
+}
 
 module.exports = app;
