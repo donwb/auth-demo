@@ -7,8 +7,8 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceRoot}\\bin\\www",
+            "name": "LaunchProgram",
+            "program": "${workspaceRoot}/bin/www",
             "cwd": "${workspaceRoot}",
             "env": {
                 "CLIENT_ID": "7355dcca96642f8ce987",

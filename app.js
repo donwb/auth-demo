@@ -12,7 +12,6 @@ var session = require('express-session');
 var passport = require('passport');
 var GitHubStrategy = require('passport-github2').Strategy;
 
-
 // Called 1 time, upon successful login
 passport.serializeUser(function(user, callback){
   callback(null, user);
@@ -43,13 +42,15 @@ function(accessToken, refreshToken, profile, callback){
     
     // Creating a subset of interesting GH user
     // profile info.  The approved attribute is custom
+    var valid = validateUser(profile.displayName);
+
     var myUser = {
       displayName: profile.displayName,
       id: profile.id,
       avatar_url: profile._json.avatar_url,
-      approved: true
+      authorized: valid
     }
-    
+    console.log(myUser);
     return callback(null, myUser);
   });
 }));
@@ -129,5 +130,18 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+function validateUser(username){
+    var valid = false;
+    for(var i=0; i < users.length; i++){
+      valid = (username === users[i]) ? true : false;
+      if(valid) break;
+    }
+    return valid;
+}
+
+var users = [
+    "Don Browning",
+    "Brian Solomon"
+]
 
 module.exports = app;

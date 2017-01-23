@@ -15,10 +15,18 @@ router.get('/', function(req, res, next) {
   res.render('index', { user: name });
 });
 
+router.get('/nope', function(req, res, next){
+  res.render('nope');
+
+});
+
 router.get('/profile', function(req, res){
   // check to see if logged in, if not head to login page instead
   if (!req.isAuthenticated()) { res.redirect('/login') }
-  
+  if(!req.user.authorized){
+    res.redirect('/nope');
+  }
+
   res.render('profile', 
   {
     user: req.user.displayName
