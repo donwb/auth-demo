@@ -13,12 +13,13 @@ var passport = require('passport');
 var GitHubStrategy = require('passport-github2').Strategy;
 
 
-// ?? not sure yet
+// Called 1 time, upon successful login
 passport.serializeUser(function(user, callback){
   callback(null, user);
 });
 
-// ?? not sure yet
+// Called on each route invocation to rehydrate the
+// user object from the session
 passport.deserializeUser(function(obj, callback){
   callback(null, obj);
 });
@@ -40,10 +41,16 @@ function(accessToken, refreshToken, profile, callback){
     // your own user store, using profile.id as the key
     // id, displayName, and emails are interesting properties
     
-    // You would want to return your own user here
-    // not the github user, but this simplifies things
-    // by not including the complexity of user management
-    return callback(null, profile);
+    // Creating a subset of interesting GH user
+    // profile info.  The approved attribute is custom
+    var myUser = {
+      displayName: profile.displayName,
+      id: profile.id,
+      avatar_url: profile._json.avatar_url,
+      approved: true
+    }
+    
+    return callback(null, myUser);
   });
 }));
 
